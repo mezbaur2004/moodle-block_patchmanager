@@ -25,13 +25,14 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_patchmanager';
-$plugin->version = 2026092000;
+$plugin->version = 2026092001;
 $plugin->requires = 2024100700; // Moodle 4.5.
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '1.0.0';
+$plugin->release = '1.0.1';
 
 // The block is a view over the engine. It carries no patch logic of its own and
-// is useless without it, so it requires the version that exposes api::can_manage().
+// is useless without it, so it requires the version that exposes
+// api::can_manage_action() and api::MANAGED_ACTIONS.
 $plugin->dependencies = [
-    'local_patchmanager' => 2026092002,
+    'local_patchmanager' => 2026092003,
 ];

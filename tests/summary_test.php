@@ -76,13 +76,32 @@ final class summary_test extends \advanced_testcase {
      * Export the summary through a real renderer.
      *
      * @param array $snapshot
-     * @param bool $canmanage
+     * @param bool|array $permissions true/false for every action, or a per-action map
      * @return array
      */
-    private function export(array $snapshot, bool $canmanage): array {
+    private function export(array $snapshot, $permissions): array {
         global $PAGE;
-        $renderable = new summary($snapshot, $canmanage);
+        $renderable = new summary($snapshot, $this->permissions($permissions));
         return $renderable->export_for_template($PAGE->get_renderer('core'));
+    }
+
+    /**
+     * Expand a blanket true/false into the per-action map the block now passes.
+     *
+     * @param bool|array $permissions
+     * @return bool[]
+     */
+    private function permissions($permissions): array {
+        if (is_array($permissions)) {
+            return $permissions;
+        }
+
+        $map = [];
+        foreach (\local_patchmanager\api::MANAGED_ACTIONS as $action) {
+            $map[$action] = (bool) $permissions;
+        }
+
+        return $map;
     }
 
     /**
@@ -268,6 +287,56 @@ final class summary_test extends \advanced_testcase {
     }
 
     /**
+     * With the web-apply switch off, Verify is still offered but Apply is not.
+     *
+     * This is the split the gating fix introduces: verifying records a decision
+     * and writes no code, so it must not depend on a switch whose purpose is
+     * permitting code writes from a browser.
+     *
+     * @return void
+     */
+    public function test_verify_offered_without_webapply_but_apply_is_not(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        // Exactly what api::can_manage_action() returns when allowwebapply is off.
+        $webapplyoff = [
+            'apply' => false,
+            'reapply' => false,
+            'restore' => false,
+            'verify' => true,
+            'acknowledge' => true,
+        ];
+
+        $data = $this->export($this->snapshot([
+            'canapply' => true,
+            'canreapply' => true,
+            'canrestore' => true,
+            'canverify' => true,
+        ]), $webapplyoff);
+
+        $actions = array_column($data['patches'][0]['actions'], 'action');
+        $this->assertSame(['verify'], $actions,
+                'only verify may be offered while browser code-writing is off');
+        $this->assertTrue($data['canmanage']);
+    }
+
+    /**
+     * An action the caller did not resolve is never offered.
+     *
+     * @return void
+     */
+    public function test_unresolved_action_is_refused(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $data = $this->export($this->snapshot(['canverify' => true]), []);
+
+        $this->assertSame([], $data['patches'][0]['actions']);
+        $this->assertFalse($data['canmanage']);
+    }
+
+    /**
      * An unreadable engine degrades to a notice rather than an error.
      *
      * @return void
@@ -296,7 +365,8 @@ final class summary_test extends \advanced_testcase {
         $PAGE->set_url('/my/index.php');
 
         $renderer = $PAGE->get_renderer('block_patchmanager');
-        $html = $renderer->render(new summary($this->snapshot(['canverify' => true]), true));
+        $html = $renderer->render(
+            new summary($this->snapshot(['canverify' => true]), $this->permissions(true)));
 
         $this->assertStringContainsString('Period grading', $html);
         $this->assertStringContainsString('mod_zoom', $html);

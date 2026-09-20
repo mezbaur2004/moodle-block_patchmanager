@@ -34,18 +34,31 @@ class summary implements \renderable, \templatable {
     /** @var array The cached snapshot from the engine. */
     protected array $snapshot;
 
-    /** @var bool Whether this user may be offered write actions. */
-    protected bool $canmanage;
+    /** @var bool[] Action name => whether this user may be offered it. */
+    protected array $permissions;
 
     /**
      * Constructor.
      *
      * @param array $snapshot snapshot from statuscache::get()
-     * @param bool $canmanage result of local_patchmanager api::can_manage(true)
+     * @param bool[] $permissions action => local_patchmanager api::can_manage_action($action, true)
      */
-    public function __construct(array $snapshot, bool $canmanage) {
+    public function __construct(array $snapshot, array $permissions) {
         $this->snapshot = $snapshot;
-        $this->canmanage = $canmanage;
+        $this->permissions = $permissions;
+    }
+
+    /**
+     * Whether one action may be offered to this user.
+     *
+     * Defaults to refusing, so an action the caller did not resolve is never
+     * shown.
+     *
+     * @param string $action
+     * @return bool
+     */
+    protected function allowed(string $action): bool {
+        return !empty($this->permissions[$action]);
     }
 
     /**
@@ -64,7 +77,7 @@ class summary implements \renderable, \templatable {
                 'action' => 'check',
                 'sesskey' => sesskey(),
             ]))->out(false),
-            'canmanage' => $this->canmanage,
+            'canmanage' => (bool) array_filter($this->permissions),
             'lastcheck' => null,
             'patches' => [],
             'haspatches' => false,
@@ -110,12 +123,10 @@ class summary implements \renderable, \templatable {
             'hasactions' => false,
         ];
 
-        // Actions are offered only when the engine's own can_*() rule allows it
-        // AND this user passes the engine's manage check. Both must hold.
-        if (!$this->canmanage) {
-            return $row;
-        }
-
+        // An action is offered only when the engine's own can_*() rule allows it
+        // for this patch AND this user is permitted that specific action. Both
+        // must hold, and permission is asked per action because applying needs
+        // the web-apply switch while verifying does not.
         $candidates = [
             'apply' => !empty($patch['canapply']),
             'reapply' => !empty($patch['canreapply']),
@@ -124,7 +135,7 @@ class summary implements \renderable, \templatable {
         ];
 
         foreach ($candidates as $action => $allowed) {
-            if (!$allowed) {
+            if (!$allowed || !$this->allowed($action)) {
                 continue;
             }
 
