@@ -1,0 +1,150 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template block_patchmanager/summary
+
+    Status summary of the site's code customisations.
+
+    Every action is a link to the Patch Manager page, which keeps its own
+    confirmation, POST, sesskey and permission gates. Nothing here performs a
+    write.
+
+    Context variables required for this template:
+    * available boolean - whether the engine could be read
+    * overall object - worst severity across all patches
+    * patches array - one entry per registered customisation
+    * haspatches boolean - whether any customisation is registered
+    * lastcheck string - when the shown state was computed
+    * manageurl string - link to the Patch Manager page
+    * checkurl string - sesskey protected link that runs a live check
+    * canmanage boolean - whether to offer write actions
+
+    Example context (json):
+    {
+        "available": true,
+        "haspatches": true,
+        "lastcheck": "20 September 2026, 11:00 AM",
+        "manageurl": "/local/patchmanager/index.php",
+        "checkurl": "/local/patchmanager/index.php?action=check&sesskey=abc",
+        "canmanage": true,
+        "overall": {
+            "severity": "warning",
+            "badgeclass": "badge bg-warning text-dark",
+            "label": "Attention needed"
+        },
+        "patches": [
+            {
+                "key": "local_zoomcustom:001-period-grading",
+                "name": "Period grading",
+                "statelabel": "Active",
+                "badgeclass": "badge bg-success text-white",
+                "required": true,
+                "targetcomponent": "mod_zoom",
+                "targetversion": "2026082400",
+                "verificationlabel": "Verified",
+                "heartbeatlabel": "Last seen 20 September 2026, 10:55 AM",
+                "hasreasons": false,
+                "reasons": [],
+                "hasactions": true,
+                "actions": [
+                    {
+                        "action": "verify",
+                        "label": "Verify",
+                        "url": "/local/patchmanager/index.php?action=verify"
+                    }
+                ]
+            }
+        ]
+    }
+}}
+<div class="block_patchmanager-summary">
+
+    {{^available}}
+        <p class="text-muted">{{#str}} enginenotavailable, block_patchmanager {{/str}}</p>
+    {{/available}}
+
+    {{#available}}
+        {{#overall}}
+            <p class="mb-2">
+                <span class="{{badgeclass}}">{{label}}</span>
+            </p>
+        {{/overall}}
+
+        {{^haspatches}}
+            <p class="text-muted">{{#str}} nopatches, block_patchmanager {{/str}}</p>
+        {{/haspatches}}
+
+        {{#haspatches}}
+            <ul class="list-unstyled mb-2">
+                {{#patches}}
+                    <li class="mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong>{{name}}</strong>
+                            {{#required}}
+                                <span class="badge bg-secondary text-white">{{#str}} required, block_patchmanager {{/str}}</span>
+                            {{/required}}
+                        </div>
+                        <div class="mt-1">
+                            <span class="{{badgeclass}}">{{statelabel}}</span>
+                        </div>
+                        <dl class="row mb-0 mt-2 small">
+                            <dt class="col-5">{{#str}} target, block_patchmanager {{/str}}</dt>
+                            <dd class="col-7">{{targetcomponent}} {{targetversion}}</dd>
+
+                            <dt class="col-5">{{#str}} verification, block_patchmanager {{/str}}</dt>
+                            <dd class="col-7">{{verificationlabel}}</dd>
+
+                            {{#heartbeatlabel}}
+                                <dt class="col-5">{{#str}} heartbeat, block_patchmanager {{/str}}</dt>
+                                <dd class="col-7">{{heartbeatlabel}}</dd>
+                            {{/heartbeatlabel}}
+                        </dl>
+
+                        {{#hasreasons}}
+                            <ul class="small text-muted mt-1 mb-0">
+                                {{#reasons}}
+                                    <li>{{.}}</li>
+                                {{/reasons}}
+                            </ul>
+                        {{/hasreasons}}
+
+                        {{#hasactions}}
+                            <div class="mt-2">
+                                {{#actions}}
+                                    <a class="btn btn-sm btn-outline-secondary mr-1 me-1"
+                                       href="{{url}}">{{label}}</a>
+                                {{/actions}}
+                            </div>
+                        {{/hasactions}}
+                    </li>
+                {{/patches}}
+            </ul>
+        {{/haspatches}}
+
+        {{#lastcheck}}
+            <p class="small text-muted mb-2">
+                {{#str}} lastcheck, block_patchmanager, {{lastcheck}} {{/str}}
+            </p>
+        {{/lastcheck}}
+
+        <div>
+            <a class="btn btn-sm btn-secondary" href="{{manageurl}}">{{#str}} manage, block_patchmanager {{/str}}</a>
+            <a class="btn btn-sm btn-primary" href="{{checkurl}}">{{#str}} check, block_patchmanager {{/str}}</a>
+        </div>
+    {{/available}}
+
+</div>
