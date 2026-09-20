@@ -118,12 +118,18 @@ class block_patchmanager extends block_base {
 
         $snapshot = \block_patchmanager\local\statuscache::get();
 
-        // Whether to offer write actions is a per-user question, so it is asked
-        // on every render and never cached. can_manage() is the engine's own
-        // rule; require_manage() still gates the action itself.
-        $canmanage = \local_patchmanager\api::can_manage(true);
+        // Whether to offer an action is a per-user question, so it is asked on
+        // every render and never cached. It is also per-action: applying writes
+        // code and needs the web-apply switch, while verifying records a
+        // decision and does not. can_manage_action() is the engine's own rule,
+        // asked once per action so the block never restates it;
+        // require_manage_action() still gates the action itself.
+        $permissions = [];
+        foreach (\local_patchmanager\api::MANAGED_ACTIONS as $action) {
+            $permissions[$action] = \local_patchmanager\api::can_manage_action($action, true);
+        }
 
-        $renderable = new \block_patchmanager\output\summary($snapshot, $canmanage);
+        $renderable = new \block_patchmanager\output\summary($snapshot, $permissions);
         $renderer = $this->page->get_renderer('block_patchmanager');
         $this->content->text = $renderer->render($renderable);
 
