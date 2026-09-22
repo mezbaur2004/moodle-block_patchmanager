@@ -57,13 +57,22 @@ $string['targetnotinstalled'] = 'not installed';
 $string['targetversionunknown'] = 'version unknown';
 $string['targetversionpending'] = '{$a->disk} (upgrade pending, database at {$a->db})';
 
-// Actions. These link to the Patch Manager page, which confirms them.
+// Actions. These link to the Patch Manager page, which confirms them, except
+// when the site keeps code changes CLI-only (see clionly / clihint below).
 $string['action_apply'] = 'Apply';
 $string['action_reapply'] = 'Reapply';
-$string['action_restore'] = 'Restore';
+$string['action_restore'] = 'Remove patch';
 $string['action_verify'] = 'Verify';
 $string['manage'] = 'Manage';
 $string['check'] = 'Check now';
+
+// Shown instead of a clickable action when $CFG->local_patchmanager_allowwebapply
+// is off: the button is disabled and this explains what to run instead.
+$string['clionly'] = 'Browser changes are disabled on this site. Run this instead:';
+$string['clihint'] = 'cd {$a->dirroot}
+sudo -u www-data php local/patchmanager/cli/{$a->script}.php --patch={$a->key}';
+$string['clihint_nodirroot'] = 'Run from the Moodle root directory:
+sudo -u www-data php local/patchmanager/cli/{$a->script}.php --patch={$a->key}';
 
 // Empty and error states.
 $string['nopatches'] = 'No customisations are registered.';

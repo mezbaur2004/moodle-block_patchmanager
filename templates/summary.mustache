@@ -19,9 +19,11 @@
 
     Status summary of the site's code customisations.
 
-    Every action is a link to the Patch Manager page, which keeps its own
-    confirmation, POST, sesskey and permission gates. Nothing here performs a
-    write.
+    Every action either links to the Patch Manager page, which keeps its own
+    confirmation, POST, sesskey and permission gates, or - when this site
+    keeps code changes CLI-only - is shown disabled with the CLI command to
+    run instead (action.clionly / action.clicommand). Nothing here performs
+    a write.
 
     Context variables required for this template:
     * available boolean - whether the engine could be read
@@ -64,7 +66,14 @@
                     {
                         "action": "verify",
                         "label": "Verify",
+                        "clionly": false,
                         "url": "/local/patchmanager/index.php?action=verify"
+                    },
+                    {
+                        "action": "apply",
+                        "label": "Apply",
+                        "clionly": true,
+                        "clicommand": "cd /var/www/html/student.pedagoacademy.com\nsudo -u www-data php local/patchmanager/cli/apply.php --patch=local_zoomcustom:001-period-grading"
                     }
                 ]
             }
@@ -125,8 +134,18 @@
                         {{#hasactions}}
                             <div class="mt-2">
                                 {{#actions}}
-                                    <a class="btn btn-sm btn-outline-secondary mr-1 me-1"
-                                       href="{{url}}">{{label}}</a>
+                                    {{^clionly}}
+                                        <a class="btn btn-sm btn-outline-secondary mr-1 me-1"
+                                           href="{{url}}">{{label}}</a>
+                                    {{/clionly}}
+                                    {{#clionly}}
+                                        <div class="mb-2">
+                                            <span class="btn btn-sm btn-outline-secondary disabled mr-1 me-1"
+                                                  aria-disabled="true">{{label}}</span>
+                                            <div class="small text-muted mt-1">{{#str}} clionly, block_patchmanager {{/str}}</div>
+                                            <pre class="small bg-light border rounded p-2 mb-0 mt-1" style="white-space: pre-wrap;">{{clicommand}}</pre>
+                                        </div>
+                                    {{/clionly}}
                                 {{/actions}}
                             </div>
                         {{/hasactions}}
