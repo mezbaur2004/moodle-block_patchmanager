@@ -37,21 +37,15 @@ class summary implements \renderable, \templatable {
     /** @var bool[] Action name => whether this user may be offered it. */
     protected array $permissions;
 
-    /** @var bool Whether this user is authorised at all, ignoring the web-apply switch. */
-    protected bool $baseallowed;
-
     /**
      * Constructor.
      *
      * @param array $snapshot snapshot from statuscache::get()
      * @param bool[] $permissions action => local_patchmanager api::can_manage_action($action, true)
-     * @param bool $baseallowed local_patchmanager api::can_manage(false); site admin plus capability,
-     *                          independent of $CFG->local_patchmanager_allowwebapply
      */
-    public function __construct(array $snapshot, array $permissions, bool $baseallowed = false) {
+    public function __construct(array $snapshot, array $permissions) {
         $this->snapshot = $snapshot;
         $this->permissions = $permissions;
-        $this->baseallowed = $baseallowed;
     }
 
     /**
@@ -140,70 +134,26 @@ class summary implements \renderable, \templatable {
             'verify' => !empty($patch['canverify']),
         ];
 
-        foreach ($candidates as $action => $stateallows) {
-            if (!$stateallows) {
+        foreach ($candidates as $action => $allowed) {
+            if (!$allowed || !$this->allowed($action)) {
                 continue;
             }
 
-            if ($this->allowed($action)) {
-                $row['actions'][] = [
+            $row['actions'][] = [
+                'action' => $action,
+                'label' => get_string('action_' . $action, 'block_patchmanager'),
+                'url' => (new \moodle_url('/local/patchmanager/index.php', [
                     'action' => $action,
-                    'label' => get_string('action_' . $action, 'block_patchmanager'),
-                    'clionly' => false,
-                    'url' => (new \moodle_url('/local/patchmanager/index.php', [
-                        'action' => $action,
-                        'pack' => $patch['pack'],
-                        'patch' => $patch['patchid'],
-                        'sesskey' => sesskey(),
-                    ]))->out(false),
-                ];
-                continue;
-            }
-
-            // Not offered as a link. When that is purely because this site
-            // keeps code changes CLI-only (the user is otherwise authorised,
-            // and this action writes code), show it disabled with the exact
-            // command to run instead of just hiding it. An action this user
-            // simply lacks the capability for, or that verify/acknowledge's
-            // record-only status makes irrelevant here, stays hidden as before.
-            if ($this->baseallowed && \local_patchmanager\api::action_changes_code($action)) {
-                $row['actions'][] = [
-                    'action' => $action,
-                    'label' => get_string('action_' . $action, 'block_patchmanager'),
-                    'clionly' => true,
-                    'clicommand' => $this->cli_command($action, $patch['key']),
-                ];
-            }
+                    'pack' => $patch['pack'],
+                    'patch' => $patch['patchid'],
+                    'sesskey' => sesskey(),
+                ]))->out(false),
+            ];
         }
 
         $row['hasactions'] = !empty($row['actions']);
 
         return $row;
-    }
-
-    /**
-     * The exact CLI command to run for one code-changing action.
-     *
-     * apply and reapply are both handled by cli/apply.php (it detects an
-     * outdated patch and reapplies on its own), so reapply is shown with the
-     * same apply.php command as apply. restore uses cli/restore.php.
-     *
-     * @param string $action 'apply', 'reapply' or 'restore'
-     * @param string $patchkey pack:patchid, as index.php and the CLI expect it
-     * @return string
-     */
-    protected function cli_command(string $action, string $patchkey): string {
-        global $CFG;
-
-        $script = ($action === 'restore') ? 'restore' : 'apply';
-        $args = (object) ['script' => $script, 'key' => $patchkey];
-
-        if (!empty($CFG->dirroot)) {
-            $args->dirroot = $CFG->dirroot;
-            return get_string('clihint', 'block_patchmanager', $args);
-        }
-
-        return get_string('clihint_nodirroot', 'block_patchmanager', $args);
     }
 
     /**

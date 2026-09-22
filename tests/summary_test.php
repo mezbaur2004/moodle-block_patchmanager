@@ -77,13 +77,11 @@ final class summary_test extends \advanced_testcase {
      *
      * @param array $snapshot
      * @param bool|array $permissions true/false for every action, or a per-action map
-     * @param bool $baseallowed local_patchmanager api::can_manage(false); admin plus
-     *                          capability, ignoring the web-apply switch
      * @return array
      */
-    private function export(array $snapshot, $permissions, bool $baseallowed = false): array {
+    private function export(array $snapshot, $permissions): array {
         global $PAGE;
-        $renderable = new summary($snapshot, $this->permissions($permissions), $baseallowed);
+        $renderable = new summary($snapshot, $this->permissions($permissions));
         return $renderable->export_for_template($PAGE->get_renderer('core'));
     }
 
@@ -289,10 +287,7 @@ final class summary_test extends \advanced_testcase {
     }
 
     /**
-     * With the web-apply switch off, Verify is still a clickable link, and
-     * Apply/Reapply/Restore are shown disabled with a CLI command rather than
-     * being hidden, because the admin is otherwise authorised - this site has
-     * simply chosen to keep code changes CLI-only.
+     * With the web-apply switch off, Verify is still offered but Apply is not.
      *
      * This is the split the gating fix introduces: verifying records a decision
      * and writes no code, so it must not depend on a switch whose purpose is
@@ -301,8 +296,6 @@ final class summary_test extends \advanced_testcase {
      * @return void
      */
     public function test_verify_offered_without_webapply_but_apply_is_not(): void {
-        global $CFG;
-
         $this->resetAfterTest();
         $this->setAdminUser();
 
@@ -320,93 +313,12 @@ final class summary_test extends \advanced_testcase {
             'canreapply' => true,
             'canrestore' => true,
             'canverify' => true,
-        ]), $webapplyoff, true);
+        ]), $webapplyoff);
 
-        $actions = $data['patches'][0]['actions'];
-        $byaction = [];
-        foreach ($actions as $entry) {
-            $byaction[$entry['action']] = $entry;
-        }
-
-        $this->assertSame(['apply', 'reapply', 'restore', 'verify'], array_keys($byaction),
-                'every action still appears, apply/reapply/restore just switch to a CLI hint');
+        $actions = array_column($data['patches'][0]['actions'], 'action');
+        $this->assertSame(['verify'], $actions,
+                'only verify may be offered while browser code-writing is off');
         $this->assertTrue($data['canmanage']);
-
-        // Verify is unaffected: still a plain clickable link.
-        $this->assertFalse($byaction['verify']['clionly']);
-        $this->assertArrayHasKey('url', $byaction['verify']);
-
-        // Apply/reapply/restore are disabled and carry the real command instead of a url.
-        foreach (['apply', 'reapply', 'restore'] as $action) {
-            $this->assertTrue($byaction[$action]['clionly'], "$action must be marked clionly");
-            $this->assertArrayNotHasKey('url', $byaction[$action]);
-            $this->assertStringContainsString('sudo -u www-data php', $byaction[$action]['clicommand']);
-            $this->assertStringContainsString('--patch=local_zoomcustom:001-period-grading',
-                    $byaction[$action]['clicommand']);
-            $this->assertStringContainsString($CFG->dirroot, $byaction[$action]['clicommand'],
-                    'the command must cd into the real Moodle root, not a hardcoded path');
-        }
-
-        // apply and reapply both run cli/apply.php; restore runs cli/restore.php.
-        $this->assertStringContainsString('cli/apply.php', $byaction['apply']['clicommand']);
-        $this->assertStringContainsString('cli/apply.php', $byaction['reapply']['clicommand']);
-        $this->assertStringNotContainsString('cli/restore.php', $byaction['apply']['clicommand']);
-        $this->assertStringContainsString('cli/restore.php', $byaction['restore']['clicommand']);
-    }
-
-    /**
-     * Without base authorisation (not an admin, or missing the manage
-     * capability), apply/reapply/restore stay hidden even though the engine's
-     * state would allow them - the CLI hint is not shown to someone who is
-     * not authorised to act at all.
-     *
-     * @return void
-     */
-    public function test_clionly_hidden_without_base_permission(): void {
-        $this->resetAfterTest();
-        $this->setAdminUser();
-
-        $webapplyoff = [
-            'apply' => false,
-            'reapply' => false,
-            'restore' => false,
-            'verify' => false,
-            'acknowledge' => false,
-        ];
-
-        $data = $this->export($this->snapshot([
-            'canapply' => true,
-            'canreapply' => true,
-            'canrestore' => true,
-            'canverify' => true,
-        ]), $webapplyoff, false);
-
-        $this->assertSame([], $data['patches'][0]['actions']);
-        $this->assertFalse($data['patches'][0]['hasactions']);
-    }
-
-    /**
-     * The Restore action is labelled "Remove patch" throughout, including in
-     * its CLI-only form.
-     *
-     * @return void
-     */
-    public function test_restore_is_labelled_remove_patch(): void {
-        $this->resetAfterTest();
-        $this->setAdminUser();
-
-        $this->assertSame('Remove patch', get_string('action_restore', 'block_patchmanager'));
-
-        $webapplyoff = [
-            'apply' => false,
-            'reapply' => false,
-            'restore' => false,
-            'verify' => false,
-            'acknowledge' => false,
-        ];
-
-        $data = $this->export($this->snapshot(['canrestore' => true]), $webapplyoff, true);
-        $this->assertSame('Remove patch', $data['patches'][0]['actions'][0]['label']);
     }
 
     /**

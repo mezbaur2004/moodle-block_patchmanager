@@ -129,13 +129,7 @@ class block_patchmanager extends block_base {
             $permissions[$action] = \local_patchmanager\api::can_manage_action($action, true);
         }
 
-        // Authorisation without the web-apply switch: lets the block tell "not
-        // an admin, hide this" apart from "an admin, but this site keeps code
-        // changes CLI-only", which is the site's own choice, not a permission
-        // gap. Still asked fresh on every render, like $permissions above.
-        $baseallowed = \local_patchmanager\api::can_manage(false);
-
-        $renderable = new \block_patchmanager\output\summary($snapshot, $permissions, $baseallowed);
+        $renderable = new \block_patchmanager\output\summary($snapshot, $permissions);
         $renderer = $this->page->get_renderer('block_patchmanager');
         $this->content->text = $renderer->render($renderable);
 
