@@ -22,7 +22,7 @@ use block_patchmanager\output\summary;
  * Tests for the Patch Manager block's summary rendering and gating.
  *
  * @package    block_patchmanager
- * @copyright  2026 Pedago Academy
+ * @copyright  2026 Mezbaur Are Rafi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \block_patchmanager\output\summary
  */
