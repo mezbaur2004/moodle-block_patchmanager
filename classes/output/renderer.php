@@ -22,7 +22,7 @@ use plugin_renderer_base;
  * Renderer for block_patchmanager.
  *
  * @package    block_patchmanager
- * @copyright  2026 Pedago Academy
+ * @copyright  2026 Mezbaur Are Rafi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class renderer extends plugin_renderer_base {

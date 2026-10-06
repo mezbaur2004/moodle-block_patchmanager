@@ -28,7 +28,7 @@ namespace block_patchmanager\local;
  * actions to offer is made fresh on every render, never cached.
  *
  * @package    block_patchmanager
- * @copyright  2026 Pedago Academy
+ * @copyright  2026 Mezbaur Are Rafi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class statuscache {

@@ -31,7 +31,7 @@ use block_patchmanager\local\statuscache;
  * happened to expire.
  *
  * @package    block_patchmanager
- * @copyright  2026 Pedago Academy
+ * @copyright  2026 Mezbaur Are Rafi
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     ::block_patchmanager_patchmanager_state_changed
  * @covers     \block_patchmanager\local\statuscache
